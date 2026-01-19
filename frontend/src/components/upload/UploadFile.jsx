@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { uploadOriginalFile } from "../../services/UploadService";
 import { auth } from "../../firebase/firebase";
+import { convertPdfFirstPageToImage } from "../../utils/pdfToImg";
 
 const UploadFile = () => {
   const [file, setFile] = useState(null);
@@ -17,7 +18,14 @@ const UploadFile = () => {
 
     try {
       const userId = auth.currentUser.uid;
-      await uploadOriginalFile(file, userId);
+      let fileToUpload = file;
+
+      if (file.type === "application/pdf") {
+        fileToUpload = await convertPdfFirstPageToImage(file);
+      }
+
+      await uploadOriginalFile(fileToUpload, userId);
+
       setSuccess("File uploaded successfully");
       setFile(null);
       setPreview(null);
@@ -50,6 +58,7 @@ const UploadFile = () => {
     } else {
       setPreview(null);
     }
+    
   };
 
   return (
