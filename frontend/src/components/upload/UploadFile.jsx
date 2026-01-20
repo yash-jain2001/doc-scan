@@ -3,7 +3,7 @@ import { uploadOriginalFile } from "../../services/UploadService";
 import { auth } from "../../firebase/firebase";
 import { convertPdfFirstPageToImage } from "../../utils/pdfToImg";
 
-const UploadFile = () => {
+const UploadFile = ({onUploadSuccess}) => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(null);
@@ -25,6 +25,29 @@ const UploadFile = () => {
       }
 
       await uploadOriginalFile(fileToUpload, userId);
+      onUploadSuccess();
+
+
+      // STEP 9.2 – call backend processing API
+      const response = await fetch(
+        "https://healthcheck-hkc6n3274a-uc.a.run.app",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: userId,
+            fileName: fileToUpload.name,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+      if (!data.success) {
+        throw new Error("Backend processing failed");
+      }
 
       setSuccess("File uploaded successfully");
       setFile(null);
@@ -58,11 +81,10 @@ const UploadFile = () => {
     } else {
       setPreview(null);
     }
-    
   };
 
   return (
-    <div className="border-2 shadow-gray-400 p-5 shadow-md mb-10 border-gray-300 flex flex-col justify-center items-center gap-4">
+    <div className="border-2 shadow-gray-400 p-5 shadow-md mb-1 border-gray-300 flex flex-col justify-center items-center gap-4">
       <h2 className="text-lg font-bold">Upload Document</h2>
 
       <input

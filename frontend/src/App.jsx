@@ -5,10 +5,28 @@ import Header from "./components/Header";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "./firebase/firebase";
 import UploadFile from "./components/upload/UploadFile";
+import Gallary from "./components/Gallary";
+
 
 const App = () => {
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshGallery, setRefreshGallery] = useState(false);
+
+
+
+  useEffect(() => {
+    fetch("https://healthcheck-hkc6n3274a-uc.a.run.app")
+      .then((res) => res.json())
+      .then((data) => {
+        // setMessage(data.message);
+        console.log(data);
+      })
+      .catch((err) => {
+        // setMessage("Backend not reachable");
+        console.log("Backend not reachable", err);
+      });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (CurrentUser) => {
@@ -46,7 +64,10 @@ const App = () => {
               </button>
             </div>
             <div>
-              <UploadFile />
+              <UploadFile  onUploadSuccess={() => setRefreshGallery(prev => !prev)}/>
+            </div>
+            <div>
+              <Gallary refresh={refreshGallery}/>
             </div>
           </>
         ) : (
@@ -56,6 +77,8 @@ const App = () => {
           </>
         )}
       </div>
+            
+
     </div>
   );
 };
