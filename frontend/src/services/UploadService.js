@@ -27,6 +27,7 @@ export const uploadOriginalFile = async (file, userId) => {
         userId: { stringValue: userId },
         filename: { stringValue: file.name },
         originalUrl: { stringValue: fileUrl },
+        storagePath: { stringValue: storageRef.fullPath },
         status: { stringValue: "uploaded" },
         createdAt: { timestampValue: new Date().toISOString() },
       },

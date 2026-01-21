@@ -2,131 +2,129 @@ import { useState } from "react";
 import { uploadOriginalFile } from "../../services/UploadService";
 import { auth } from "../../firebase/firebase";
 import { convertPdfFirstPageToImage } from "../../utils/pdfToImg";
+import autoCropImage from "../../utils/autoCrop";
 
-const UploadFile = ({onUploadSuccess}) => {
-  const [file, setFile] = useState(null);
-  const [error, setError] = useState("");
-  const [preview, setPreview] = useState(null);
+const UploadFile = ({ onUploadSuccess }) => {
+  const [originalFile, setOriginalFile] = useState(null);
+  const [croppedFile, setCroppedFile] = useState(null);
+
+  const [beforePreview, setBeforePreview] = useState(null);
+  const [afterPreview, setAfterPreview] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const handleFileChange = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      setError("Only JPG, PNG, or PDF files are allowed");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setCroppedFile(null);
+    setAfterPreview(null);
+
+    if (selectedFile.type.startsWith("image/")) {
+      setOriginalFile(selectedFile);
+      setBeforePreview(URL.createObjectURL(selectedFile));
+
+      const cropped = await autoCropImage(selectedFile);
+      setCroppedFile(cropped);
+      setAfterPreview(URL.createObjectURL(cropped));
+    }
+
+    if (selectedFile.type === "application/pdf") {
+      const imageFromPdf = await convertPdfFirstPageToImage(selectedFile);
+
+      setOriginalFile(imageFromPdf);
+      setBeforePreview(URL.createObjectURL(imageFromPdf));
+
+      const cropped = await autoCropImage(imageFromPdf);
+      setCroppedFile(cropped);
+      setAfterPreview(URL.createObjectURL(cropped));
+    }
+  };
+
   const handleUpload = async () => {
-    if (!file) return;
+    if (!croppedFile) return;
 
     setLoading(true);
-    setSuccess("");
+    setError("");
 
     try {
       const userId = auth.currentUser.uid;
-      let fileToUpload = file;
-
-      if (file.type === "application/pdf") {
-        fileToUpload = await convertPdfFirstPageToImage(file);
-      }
-
-      await uploadOriginalFile(fileToUpload, userId);
+      await uploadOriginalFile(croppedFile, userId);
       onUploadSuccess();
 
-
-      // STEP 9.2 – call backend processing API
-      const response = await fetch(
-        "https://healthcheck-hkc6n3274a-uc.a.run.app",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: userId,
-            fileName: fileToUpload.name,
-          }),
-        },
-      );
-
-      const data = await response.json();
-      console.log("Backend response:", data);
-      if (!data.success) {
-        throw new Error("Backend processing failed");
-      }
-
-      setSuccess("File uploaded successfully");
-      setFile(null);
-      setPreview(null);
+      setSuccess("Document uploaded successfully");
+      setOriginalFile(null);
+      setCroppedFile(null);
+      setBeforePreview(null);
+      setAfterPreview(null);
     } catch (err) {
-      console.error("Upload error:", err);
-      setError(err.message || "Upload failed");
+      console.error(err);
+      setError("Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-
-    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-
-    if (!allowedTypes.includes(selectedFile.type)) {
-      setError("Only JPG, PNG, or PDF files are allowed");
-      setFile(null);
-      return;
-    }
-
-    setError("");
-    setFile(selectedFile);
-
-    if (selectedFile.type.startsWith("image/")) {
-      const url = URL.createObjectURL(selectedFile);
-      setPreview(url);
-    } else {
-      setPreview(null);
-    }
-  };
-
   return (
-    <div className="border-2 shadow-gray-400 p-5 shadow-md mb-1 border-gray-300 flex flex-col justify-center items-center gap-4">
+    <div className="border w-[80%] p-5 rounded shadow-md flex items-center flex-col gap-4">
       <h2 className="text-lg font-bold">Upload Document</h2>
 
       <input
-        className="bg-gray-200 border rounded border-gray-300 p-2"
         type="file"
         accept=".jpg,.jpeg,.png,.pdf"
         onChange={handleFileChange}
+        className="bg-gray-200 rounded-md p-2"
       />
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
 
-      {file && (
-        <p>
-          Selected file: <span className="font-bold">{file.name}</span>
-        </p>
-      )}
+      {beforePreview && (
+        <div className="flex gap-5">
+          <div>
+            <p className="font-semibold text-2xl mb-2">Before</p>
+            <img
+              src={beforePreview}
+              alt="before"
+              className="h-96 border rounded"
+            />
+          </div>
 
-      {preview && (
-        <div className="border-2 rounded-md border-gray-300 bg-gray-200 flex flex-col gap-4 p-5">
-          <p>Image Preview:</p>
-          <img
-            src={preview}
-            alt="preview"
-            style={{ maxWidth: "300px", border: "1px solid #ccc" }}
-          />
+          {afterPreview && (
+            <div>
+              <p className="font-semibold text-2xl mb-2">
+                After (Auto-cropped)
+              </p>
+              <img
+                src={afterPreview}
+                alt="after"
+                className="h-96 border rounded"
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {file && file.type === "application/pdf" && (
-        <p>PDF selected (preview will be added later)</p>
-      )}
-      {file && (
+      {croppedFile && (
         <button
-          className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-md"
           onClick={handleUpload}
           disabled={loading}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
         >
           {loading ? "Uploading..." : "Upload"}
         </button>
       )}
 
-      {success && <p style={{ color: "green" }}>{success}</p>}
+      {success && <p className="text-green-600">{success}</p>}
     </div>
   );
 };

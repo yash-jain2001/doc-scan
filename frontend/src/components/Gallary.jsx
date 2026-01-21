@@ -1,35 +1,61 @@
 import { useEffect, useState } from "react";
-import { getDownloadURL, listAll, ref } from "firebase/storage";
-import { storage } from "../firebase/firebase";
 import { auth } from "../firebase/firebase";
+import { deleteUpload } from "../services/DeleteService";
+import { Trash2 } from "lucide-react";
 
-const Gallary = ({refresh}) => {
-  const [images, setImages] = useState([]);
+const Gallary = ({ refresh }) => {
   const [loading, setLoading] = useState(true);
+  const [uploads, setUploads] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchUploads = async () => {
       try {
+        if (!auth.currentUser) {
+          console.log("No authenticated user found");
+          setLoading(false);
+          return;
+        }
         const userId = auth.currentUser.uid;
+        const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+        const token = await auth.currentUser.getIdToken();
 
-        // 👇 SAME PATH YOU USED DURING UPLOAD
-        const folderRef = ref(storage, `uploads/${userId}`);
+        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/image-upload/documents/uploads`;
 
-        const res = await listAll(folderRef);
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-        const urls = await Promise.all(
-          res.items.map((item) => getDownloadURL(item))
-        );
+        const data = await res.json();
 
-        setImages(urls);
+        // Check for API errors
+        if (!res.ok) {
+          console.error("Firestore API error:", data);
+          setError(`API Error: ${data.error?.message || res.status}`);
+          return;
+        }
+
+        const docs = (data.documents || [])
+          .map((doc) => ({
+            id: doc.name.split("/").pop(),
+            originalUrl: doc.fields?.originalUrl?.stringValue,
+            storagePath: doc.fields?.storagePath?.stringValue,
+            userId: doc.fields?.userId?.stringValue,
+          }))
+          .filter((d) => d.userId === userId && d.originalUrl);
+
+        setUploads(docs);
       } catch (err) {
         console.error("Gallery error:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchImages();
+    fetchUploads();
   }, [refresh]);
 
   if (loading) {
@@ -37,19 +63,36 @@ const Gallary = ({refresh}) => {
   }
 
   return (
-    <div className="mt-6">
+    <div className="py-5">
       <h2 className="text-lg font-bold mb-3">Your Uploads</h2>
 
-      {images.length === 0 && <p>No uploads yet</p>}
+      {error && <p className="text-red-500 mb-2">{error}</p>}
 
-      <div className="flex gap-4 ">
-        {images.map((url, index) => (
-          <img
-            key={index}
-            src={url}
-            alt="uploaded"
-            className="border h-60 w-48 rounded shadow-md"
-          />
+      {uploads.length === 0 && !error && <p>No uploads yet</p>}
+
+      <div className="flex gap-4 flex-wrap">
+        {uploads.map((item, index) => (
+          <div key={index} className="relative bg-gray-800">
+            <img
+              src={item.originalUrl}
+              alt="uploaded"
+              className="border h-60 w-48 rounded shadow-md"
+            />
+            <div
+              onClick={async () => {
+                try {
+                  await deleteUpload(item.id, item.storagePath);
+                  setUploads((prev) => prev.filter((u) => u.id !== item.id));
+                } catch (err) {
+                  alert("Delete failed");
+                  console.error(err);
+                }
+              }}
+              className="absolute top-2 right-2 bg-red-500 text-white px-1 py-1 rounded-full h-6 w-6 flex items-center justify-center"
+            >
+              <Trash2 />
+            </div>
+          </div>
         ))}
       </div>
     </div>

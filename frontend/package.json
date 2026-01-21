@@ -12,6 +12,8 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "firebase": "^12.8.0",
+    "lucide-react": "^0.562.0",
+    "opencv-wasm": "^4.3.0-10",
     "pdfjs-dist": "^5.4.530",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -7,23 +7,18 @@ import { auth } from "./firebase/firebase";
 import UploadFile from "./components/upload/UploadFile";
 import Gallary from "./components/Gallary";
 
-
 const App = () => {
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshGallery, setRefreshGallery] = useState(false);
 
-
-
   useEffect(() => {
     fetch("https://healthcheck-hkc6n3274a-uc.a.run.app")
       .then((res) => res.json())
       .then((data) => {
-        // setMessage(data.message);
         console.log(data);
       })
       .catch((err) => {
-        // setMessage("Backend not reachable");
         console.log("Backend not reachable", err);
       });
   }, []);
@@ -55,7 +50,13 @@ const App = () => {
         {user ? (
           <>
             <div className="flex border-t hover:border border-b rounded-lg shadow-lg border-black items-center justify-between p-5">
-              <p className="text-lg font-semibold">Logged in as <br /><span>👨</span> <span className="font-semibold underline text-xl">{user.email}</span></p>
+              <p className="text-lg font-semibold">
+                Logged in as <br />
+                <span>👨</span>{" "}
+                <span className="font-semibold underline text-xl">
+                  {user.email}
+                </span>
+              </p>
               <button
                 className="bg-red-500 hover:bg-red-600   text-white px-5 py-2 rounded"
                 onClick={logOutHandler}
@@ -63,11 +64,13 @@ const App = () => {
                 Logout
               </button>
             </div>
-            <div>
-              <UploadFile  onUploadSuccess={() => setRefreshGallery(prev => !prev)}/>
+            <div className="flex justify-center">
+              <UploadFile
+                onUploadSuccess={() => setRefreshGallery((prev) => !prev)}
+              />
             </div>
             <div>
-              <Gallary refresh={refreshGallery}/>
+              <Gallary refresh={refreshGallery} />
             </div>
           </>
         ) : (
@@ -77,8 +80,6 @@ const App = () => {
           </>
         )}
       </div>
-            
-
     </div>
   );
 };
