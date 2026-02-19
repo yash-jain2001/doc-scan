@@ -10,12 +10,15 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    console.log("Login attempt with:", email);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Login successful:", result.user.email);
       setEmail("");
       setPassword("");
     } catch (err) {
+      console.error("Login error:", err.code, err.message);
       setError(err.message);
     }
   };
@@ -23,7 +26,11 @@ const Login = () => {
   return (
     <div className="flex justify-end gap-15 items-center">
       <div className="w-[520px] h-[220px] rounded-full bg-gray-300">
-        <img className="w-full h-full object-cover" src="https://tse2.mm.bing.net/th/id/OIP.GtrbEmKuw31n3w0QbtI3TwHaDb?pid=Api&P=0&h=180" alt="" />
+        <img
+          className="w-full h-full object-cover"
+          src="https://tse2.mm.bing.net/th/id/OIP.GtrbEmKuw31n3w0QbtI3TwHaDb?pid=Api&P=0&h=180"
+          alt=""
+        />
       </div>
       <form
         onSubmit={handleLogin}
@@ -44,6 +51,7 @@ const Login = () => {
             className="p-2 border-2 border-gray-300 rounded"
             type="password"
             placeholder="Enter your password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />

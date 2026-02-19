@@ -10,13 +10,20 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
+    console.log("Register attempt with:", email);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      console.log("Registration successful:", result.user.email);
       alert("Registration successful");
       setEmail("");
       setPassword("");
     } catch (err) {
+      console.error("Register error:", err.code, err.message);
       setError(err.message);
     }
   };
@@ -56,7 +63,11 @@ const Register = () => {
         {error && <p style={{ color: "red" }}>{error}</p>}
       </form>
       <div className="w-[520px] h-[220px] rounded-full bg-gray-300">
-        <img className="w-full h-full object-cover" src="https://tse2.mm.bing.net/th/id/OIP.M-Xrl0hHEqEF7eom1F8bAQHaDZ?pid=Api&P=0&h=180" alt="" />
+        <img
+          className="w-full h-full object-cover"
+          src="https://tse2.mm.bing.net/th/id/OIP.M-Xrl0hHEqEF7eom1F8bAQHaDZ?pid=Api&P=0&h=180"
+          alt=""
+        />
       </div>
     </div>
   );
